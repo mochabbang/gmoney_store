@@ -40,26 +40,25 @@ async def main():
         # 지역명,가맹점 건 수 수집
         gmoney_sigun_infos = []
         for region in regions:
-            
             if region in ["의정부","남양주"]:
                 region = f"{region}시"
                 
+            print(region)    
             params["SIGUN_NM"] = region        
             
             gmoney_response = await fetch(gmoney_url, params)
             gmoney_rsp_json = json.loads(gmoney_response)
         
             storecnt = gmoney_rsp_json.get("RegionMnyFacltStus")[0].get("head")[0].get('list_total_count', 0)
-            # gmoney_sigunstore_info = {} 
-            # gmoney_sigunstore_info[region] = storecnt
-            # gmoney_sigunstore_infos.append(gmoney_sigunstore_info)
             
             page_totalcnt = storecnt // 1000
+            reminder_cnt = storecnt - (page_totalcnt * 1000)
             
+            print(f"{region} : 호출페이지 - {page_totalcnt}, 잔여건 - {reminder_cnt}")    
             for i in range(page_totalcnt):
                 params["pIndex"] = int(i) + 1
                 params["pSize"] = 1000
-                 
+                
                 gmoney_response = await fetch(gmoney_url, params)
                 gmoney_rsp_json = json.loads(gmoney_response)
                 
@@ -67,7 +66,9 @@ async def main():
                 gmoney_sigun_infos.extend(store_list)
                 #print(store_list)
                 
-            reminder_cnt = storecnt - (page_totalcnt * 1000)
+                print(f"{region}-{i+1}번째 실행완료...")
+                asyncio.sleep(1)
+                
             if reminder_cnt > 0:
                 params["pIndex"] = page_totalcnt + 1
                 params["pSize"] = reminder_cnt
@@ -78,9 +79,11 @@ async def main():
                 store_list= gmoney_rsp_json.get("RegionMnyFacltStus")[1].get("row")
                 gmoney_sigun_infos.extend(store_list)
                 
-            asyncio.sleep(5)
-            
-        print(gmoney_sigun_infos)
+                print(f"{region}-{reminder_cnt} 건 실행완료...")
+                
+            asyncio.sleep(3)
+                
+        print(len(gmoney_sigun_infos))
             
     except Exception as e:
         raise e    
