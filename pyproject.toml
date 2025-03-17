@@ -11,6 +11,7 @@ requests = "^2.32.3"
 dotenv = "^0.9.9"
 asyncio = "^3.4.3"
 aiohttp = "^3.11.13"
+supabase = "^2.13.0"
 
 
 [build-system]

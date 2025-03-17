@@ -3,6 +3,7 @@ import aiohttp
 import asyncio
 import json
 from dotenv import load_dotenv
+from supabase import create_client
 
 load_dotenv()
 
@@ -34,8 +35,6 @@ async def main():
         
         # 경기도 지역정보 조회
         gmoney_url = os.getenv("GMONEY_API_URL")
-        params["pIndex"] = 1
-        params["pSize"] = 1
         
         # 지역명,가맹점 건 수 수집
         gmoney_sigun_infos = []
@@ -44,11 +43,14 @@ async def main():
                 region = f"{region}시"
                 
             print(region)    
+            params["pIndex"] = 1
+            params["pSize"] = 1
             params["SIGUN_NM"] = region        
             
             gmoney_response = await fetch(gmoney_url, params)
             gmoney_rsp_json = json.loads(gmoney_response)
-        
+    
+            print(gmoney_rsp_json)
             storecnt = gmoney_rsp_json.get("RegionMnyFacltStus")[0].get("head")[0].get('list_total_count', 0)
             
             page_totalcnt = storecnt // 1000
@@ -67,7 +69,7 @@ async def main():
                 #print(store_list)
                 
                 print(f"{region}-{i+1}번째 실행완료...")
-                asyncio.sleep(1)
+                #sleep(2)
                 
             if reminder_cnt > 0:
                 params["pIndex"] = page_totalcnt + 1
@@ -81,13 +83,18 @@ async def main():
                 
                 print(f"{region}-{reminder_cnt} 건 실행완료...")
                 
-            asyncio.sleep(3)
+            #sleep(5)
                 
-        print(len(gmoney_sigun_infos))
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_apikey = os.getenv("SUPABASE_APIKEY")
+        supabase = create_client(supabase_url, supabase_apikey)
+        response = supabase.table("GMONEY_STORE_TB").insert(gmoney_sigun_infos).execute()
+        print(response)
+    
+        print("supabase 저장완료 끝!")    
             
     except Exception as e:
         raise e    
-    
-    
+        
     
 asyncio.run(main())
