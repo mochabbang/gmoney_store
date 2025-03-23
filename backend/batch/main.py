@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import aiohttp
 import asyncio
@@ -38,6 +39,7 @@ async def main():
         
         # 지역명,가맹점 건 수 수집
         gmoney_sigun_infos = []
+        
         for region in regions:
             if region in ["의정부","남양주"]:
                 region = f"{region}시"
@@ -48,9 +50,8 @@ async def main():
             params["SIGUN_NM"] = region        
             
             gmoney_response = await fetch(gmoney_url, params)
-            gmoney_rsp_json = json.loads(gmoney_response)
-    
-            print(gmoney_rsp_json)
+            gmoney_rsp_json = json.loads(gmoney_response)    
+            
             storecnt = gmoney_rsp_json.get("RegionMnyFacltStus")[0].get("head")[0].get('list_total_count', 0)
             
             page_totalcnt = storecnt // 1000
@@ -83,14 +84,20 @@ async def main():
                 
                 print(f"{region}-{reminder_cnt} 건 실행완료...")
                 
-            #sleep(5)
-                
+        
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_apikey = os.getenv("SUPABASE_APIKEY")
-        supabase = create_client(supabase_url, supabase_apikey)
-        response = supabase.table("GMONEY_STORE_TB").insert(gmoney_sigun_infos).execute()
-        print(response)
-    
+        supabase = create_client(supabase_url, supabase_apikey)        
+        
+        # 데이터 삭제
+        supabase.table("GMONEY_STORE_TB").delete().lt("CREATED_DT", datetime.now()).execute()
+        print("supabase 삭제완료 끝!")    
+        
+        batch_size = 100
+        for i in range(0, len(gmoney_sigun_infos), batch_size):
+            batch_data = gmoney_sigun_infos[i:i + batch_size]
+            response = supabase.table("GMONEY_STORE_TB").insert(batch_data).execute()
+
         print("supabase 저장완료 끝!")    
             
     except Exception as e:
